@@ -1,6 +1,7 @@
 ﻿namespace SDLControllerWrapper
 {
     using Generated.SDL_gamecontroller;
+    using Generated.SDL_joystick;
     using global::SDLControllerWrapper.Generated.SDL_sensor;
     using System;
 
@@ -40,7 +41,6 @@
         private readonly float[][] _gyroStates;
         private readonly float[][] _accelStates;
         private readonly double[][] _gyroAbsolutePositions;
-        private readonly float[] _lastGyroUpdate;
         private readonly double[] _gyroAbsolutePositionsImmediate;
         private readonly float _gyroSampleRate;
 
@@ -115,10 +115,10 @@
         /// </summary>
         public float[] PreviousAccelValues => this._accelStates[this._prevSample];
 
-        internal unsafe Controller(int joystickIndex)
+        internal unsafe Controller(int index)
         {
-            this.JoystickIndex = joystickIndex;
-            this._controller = SDL_gamecontroller.SDL_GameControllerOpen(joystickIndex);
+            this._controller = SDL_gamecontroller.SDL_GameControllerOpen(index);
+            this.JoystickIndex = SDL_joystick.SDL_JoystickInstanceID(SDL_gamecontroller.SDL_GameControllerGetJoystick(this._controller));
             this.HasRumble = SDL_gamecontroller.SDL_GameControllerHasRumble(this._controller) == Generated.Shared.SDL_bool.SDL_TRUE;
             this.HasGyro = SDL_gamecontroller.SDL_GameControllerHasSensor(this._controller, SDL_SensorType.SDL_SENSOR_GYRO) == Generated.Shared.SDL_bool.SDL_TRUE;
             if (this.HasGyro)
@@ -141,7 +141,6 @@
             this._gyroStates = new float[2][];
             this._gyroAbsolutePositions = new double[2][];
             this._accelStates = new float[2][];
-            this._lastGyroUpdate = new float[3];
             this._gyroAbsolutePositionsImmediate = new double[3];
 
             for (int i = 0; i < 2; i++)
@@ -158,8 +157,7 @@
         {
             for (int i = 0; i < 3; i++)
             {
-                this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * this._lastGyroUpdate[i]);
-                this._lastGyroUpdate[i] = data[i];
+                this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * data[i]);
             }
         }
 

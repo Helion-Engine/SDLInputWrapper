@@ -16,6 +16,7 @@
     public partial class SDLControllerWrapper : IDisposable
     {
         private const string CONTROLLERMAPPINGSDB = "SDLControllerWrapper.Resources.GameControllerDB.txt";
+        private const int MAXCONTROLLERS = 100;
         private const SDL.InitFlags INITFLAGS = SDL.InitFlags.SDL_INIT_JOYSTICK | SDL.InitFlags.SDL_INIT_GAMECONTROLLER | SDL.InitFlags.SDL_INIT_SENSOR | SDL.InitFlags.SDL_INIT_EVENTS;
 
         private bool _disposedValue;
@@ -25,6 +26,7 @@
         private event EventHandler<ConfigurationEvent> ConfigurationChanged;
 
         private List<Controller> _controllers;
+        private Controller?[] _controllersDirect;
 
         /// <summary>
         /// Gets the singleton controller wrapper (if initialized)
@@ -69,6 +71,7 @@
 
             // Detect initial set of controllers
             this._controllers = [];
+            this._controllersDirect = new Controller?[MAXCONTROLLERS];
             this.DetectControllers();
 
             // Configure a callback to handle events from SDL
@@ -100,35 +103,52 @@
         public void DetectControllers()
         {
             int numJoysticks = SDL_joystick.SDL_NumJoysticks();
-            for (int i = 0; i < numJoysticks; i++)
+            for (int i = 0; i < numJoysticks && i < MAXCONTROLLERS; i++)
             {
                 if (Controller.IsController(i))
                 {
-                    this._controllers.Add(new Controller(i));
+                    Controller detected = new Controller(i);
+                    this._controllers.Add(detected);
+                    this._controllersDirect[i] = detected;
                 }
             }
         }
 
         private unsafe void ControllerEventFilter(void* userData, SDL_Event* evt, int retVal)
         {
-            int joystickIndex = evt->cdevice.which;
+            int index = evt->cdevice.which;
+            if (index >= MAXCONTROLLERS)
+            {
+                return;
+            }
 
             switch ((SDL_EventType)evt->type)
             {
                 case SDL_EventType.SDL_CONTROLLERDEVICEADDED:
-                    this._controllers.Add(new Controller(joystickIndex));
-                    ConfigurationChanged(this, new(ConfigurationChange.Added, joystickIndex));
+                    // Note:  The controller index for the "added" event is a "controller index".
+                    // For other events, it appears we're getting a "joystick index".  The two are not
+                    // necessarily the same, especially if a device has been unplugged and re-plugged.
+                    Controller added = new Controller(index);
+                    this._controllers.Add(added);
+                    this._controllersDirect[added.JoystickIndex] = added;
+                    ConfigurationChanged(this, new(ConfigurationChange.Added, index));
                     break;
                 case SDL_EventType.SDL_CONTROLLERDEVICEREMOVED:
-                    ConfigurationChanged(this, new(ConfigurationChange.Removed, joystickIndex));
-                    _ = this._controllers.RemoveAll(c => c.JoystickIndex == joystickIndex);
+                    ConfigurationChanged(this, new(ConfigurationChange.Removed, index));
+                    Controller? removed = this._controllersDirect[index];
+                    if (removed != null)
+                    {
+                        this._controllersDirect[index] = null;
+                        _ = this._controllers.RemoveAll(c => c == removed);
+                        removed?.Dispose();
+                    }
                     break;
                 case SDL_EventType.SDL_CONTROLLERSENSORUPDATE:
                     if (evt->csensor.sensor != (int)SDL_SensorType.SDL_SENSOR_GYRO)
                     {
                         break;
                     }
-                    this._controllers[joystickIndex].UpdateGyroAbsolutePositions(evt->csensor.data);
+                    this._controllersDirect[index]?.UpdateGyroAbsolutePositions(evt->csensor.data);
                     break;
                 default:
                     break;

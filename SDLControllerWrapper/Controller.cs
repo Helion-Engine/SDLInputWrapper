@@ -39,9 +39,14 @@
         private readonly DPad[] _dpadStates;
         private readonly float[][] _gyroStates;
         private readonly float[][] _accelStates;
+        private readonly double[][] _gyroAbsolutePositions;
+        private readonly float[] _lastGyroUpdate;
+        private readonly double[] _gyroAbsolutePositionsImmediate;
+        private ulong _lastGyroUpdateTimestamp;
 
         private int _currentSample;
         private int _prevSample;
+
 
         /// <summary>
         /// Get the most recent sampled values for all buttons, indexed by <see cref="Button"/>
@@ -77,25 +82,37 @@
 
         /// <summary>
         /// Get the most recent sampled values from the gyro, if present,
-        /// indexed by <see cref="GyroAxis"/>
+        /// indexed by <see cref="GyroAxis"/>.  These are rotational rates measured in rad/s.
         /// </summary>
         public float[] CurrentGyroValues => this._gyroStates[this._currentSample];
 
         /// <summary>
         /// Get the previous sampled values from the gyro, if present,
-        /// indexed by <see cref="GyroAxis"/>
+        /// indexed by <see cref="GyroAxis"/>.  These are rotational rates measured in rad/s.
         /// </summary>
         public float[] PreviousGyroValues => this._gyroStates[this._prevSample];
 
         /// <summary>
+        /// Get the estimated absolute position of the gyro, if present,
+        /// indexed by <see cref="GyroAxis"/>.  Note that this will accumulate error over time.
+        /// </summary>
+        public double[] CurrentGyroAbsolutePosition => this._gyroAbsolutePositions[this._currentSample];
+
+        /// <summary>
+        /// Get the previous estimated absolute position of the gyro, if present,
+        /// indexed by <see cref="GyroAxis"/>.  Note that this will accumulate error over time.
+        /// </summary>
+        public double[] PreviousGyroAbsolutePosition => this._gyroAbsolutePositions[this._prevSample];
+
+        /// <summary>
         /// Get the most recent sampled values from the accelerometer, if present, 
-        /// indexed by <see cref="AccelAxis"/>
+        /// indexed by <see cref="AccelAxis"/>.  These are accelerations measured in m/s^2.
         /// </summary>
         public float[] CurrentAccelValues => this._accelStates[this._currentSample];
 
         /// <summary>
         /// Get the previous sampled values from the accelerometer, if present, 
-        /// indexed by <see cref="AccelAxis"/>
+        /// indexed by <see cref="AccelAxis"/>.  These are accelerations measured in m/s^2.
         /// </summary>
         public float[] PreviousAccelValues => this._accelStates[this._prevSample];
 
@@ -122,15 +139,32 @@
             this._buttonStates = new bool[2][];
             this._axisStates = new float[2][];
             this._gyroStates = new float[2][];
+            this._gyroAbsolutePositions = new double[2][];
             this._accelStates = new float[2][];
+            this._lastGyroUpdate = new float[3];
+            this._gyroAbsolutePositionsImmediate = new double[3];
 
             for (int i = 0; i < 2; i++)
             {
                 this._buttonStates[i] = new bool[(int)SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_MAX];
                 this._axisStates[i] = new float[(int)SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_MAX];
                 this._gyroStates[i] = new float[3];
+                this._gyroAbsolutePositions[i] = new double[3];
                 this._accelStates[i] = new float[3];
             }
+        }
+
+        internal unsafe void UpdateGyroAbsolutePositions(ulong timestampUs, float* data)
+        {
+            ulong timeDelta = unchecked(timestampUs - this._lastGyroUpdateTimestamp);
+
+            for (int i = 0; i < 3; i++)
+            {
+                this._gyroAbsolutePositionsImmediate[i] += unchecked((double)timeDelta / 1_000_000 * this._lastGyroUpdate[i]);
+                this._lastGyroUpdate[i] = data[i];
+            }
+
+            this._lastGyroUpdateTimestamp = timestampUs;
         }
 
         internal static bool IsController(int joystickId)
@@ -175,6 +209,11 @@
                 fixed (float* gyroStates = this._gyroStates[sample])
                 {
                     _ = SDL_gamecontroller.SDL_GameControllerGetSensorData(controller, SDL_SensorType.SDL_SENSOR_GYRO, gyroStates, 3);
+                }
+
+                for (int i = 0; i < 3; i++)
+                {
+                    this._gyroAbsolutePositions[sample][i] = this._gyroAbsolutePositionsImmediate[i];
                 }
             }
 

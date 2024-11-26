@@ -42,11 +42,10 @@
         private readonly double[][] _gyroAbsolutePositions;
         private readonly float[] _lastGyroUpdate;
         private readonly double[] _gyroAbsolutePositionsImmediate;
-        private ulong _lastGyroUpdateTimestamp;
+        private readonly float _gyroSampleRate;
 
         private int _currentSample;
         private int _prevSample;
-
 
         /// <summary>
         /// Get the most recent sampled values for all buttons, indexed by <see cref="Button"/>
@@ -125,6 +124,7 @@
             if (this.HasGyro)
             {
                 _ = SDL_gamecontroller.SDL_GameControllerSetSensorEnabled(this._controller, SDL_SensorType.SDL_SENSOR_GYRO, Generated.Shared.SDL_bool.SDL_TRUE);
+                this._gyroSampleRate = SDL_gamecontroller.SDL_GameControllerGetSensorDataRate(this._controller, SDL_SensorType.SDL_SENSOR_GYRO);
             }
 
             this.HasAccel = SDL_gamecontroller.SDL_GameControllerHasSensor(this._controller, SDL_SensorType.SDL_SENSOR_ACCEL) == Generated.Shared.SDL_bool.SDL_TRUE;
@@ -154,17 +154,13 @@
             }
         }
 
-        internal unsafe void UpdateGyroAbsolutePositions(ulong timestampUs, float* data)
+        internal unsafe void UpdateGyroAbsolutePositions(float* data)
         {
-            ulong timeDelta = unchecked(timestampUs - this._lastGyroUpdateTimestamp);
-
             for (int i = 0; i < 3; i++)
             {
-                this._gyroAbsolutePositionsImmediate[i] += unchecked((double)timeDelta / 1_000_000 * this._lastGyroUpdate[i]);
+                this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * this._lastGyroUpdate[i]);
                 this._lastGyroUpdate[i] = data[i];
             }
-
-            this._lastGyroUpdateTimestamp = timestampUs;
         }
 
         internal static bool IsController(int joystickId)

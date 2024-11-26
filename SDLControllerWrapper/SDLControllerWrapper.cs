@@ -128,7 +128,7 @@
                     {
                         break;
                     }
-                    this._controllers[joystickIndex].UpdateGyroAbsolutePositions(evt->csensor.timestamp_us, evt->csensor.data);
+                    this._controllers[joystickIndex].UpdateGyroAbsolutePositions(evt->csensor.data);
                     break;
                 default:
                     break;

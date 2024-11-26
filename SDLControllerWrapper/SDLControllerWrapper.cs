@@ -5,6 +5,7 @@
     using Generated.SDL_gamecontroller;
     using Generated.SDL_hints;
     using Generated.SDL_joystick;
+    using Generated.SDL_sensor;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -79,6 +80,9 @@
             _instance = this;
         }
 
+        /// <summary>
+        /// Asks SDL to update its controller data, then updates the state of every connected controller.
+        /// </summary>
         public void Poll()
         {
             SDL_gamecontroller.SDL_GameControllerUpdate();
@@ -107,17 +111,24 @@
 
         private unsafe void ControllerEventFilter(void* userData, SDL_Event* evt, int retVal)
         {
-            SDL_Event unwrapped = *evt;
+            int joystickIndex = evt->cdevice.which;
 
-            switch ((SDL_EventType)unwrapped.type)
+            switch ((SDL_EventType)evt->type)
             {
                 case SDL_EventType.SDL_CONTROLLERDEVICEADDED:
-                    this._controllers.Add(new Controller(unwrapped.cdevice.which));
-                    ConfigurationChanged(this, new(ConfigurationChange.Added, unwrapped.cdevice.which));
+                    this._controllers.Add(new Controller(joystickIndex));
+                    ConfigurationChanged(this, new(ConfigurationChange.Added, joystickIndex));
                     break;
                 case SDL_EventType.SDL_CONTROLLERDEVICEREMOVED:
-                    ConfigurationChanged(this, new(ConfigurationChange.Removed, unwrapped.cdevice.which));
-                    _ = this._controllers.RemoveAll(c => c.JoystickIndex == unwrapped.cdevice.which);
+                    ConfigurationChanged(this, new(ConfigurationChange.Removed, joystickIndex));
+                    _ = this._controllers.RemoveAll(c => c.JoystickIndex == joystickIndex);
+                    break;
+                case SDL_EventType.SDL_CONTROLLERSENSORUPDATE:
+                    if (evt->csensor.sensor != (int)SDL_SensorType.SDL_SENSOR_GYRO)
+                    {
+                        break;
+                    }
+                    this._controllers[joystickIndex].UpdateGyroAbsolutePositions(evt->csensor.timestamp_us, evt->csensor.data);
                     break;
                 default:
                     break;

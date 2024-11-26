@@ -117,6 +117,11 @@
             {
                 Console.WriteLine($"Gyro {(GyroAxis)i}: {controller.CurrentGyroValues[i]}");
             }
+
+            for (int i = 0; i < controller.CurrentGyroAbsolutePosition.Length; i++)
+            {
+                Console.WriteLine($"Gyro orientation {(GyroAxis)i}: {controller.CurrentGyroAbsolutePosition[i]}");
+            }
         }
 
         private static void TimerElapsed(object? sender, ElapsedEventArgs e)

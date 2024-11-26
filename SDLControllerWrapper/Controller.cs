@@ -237,6 +237,25 @@
             _ = SDL_gamecontroller.SDL_GameControllerRumble(this._controller, lowFrequency, highFrequency, durationMilliseconds);
         }
 
+        /// <summary>
+        /// Resets the "absolute" values of the gyro to zero, clearing any accumulated error
+        /// </summary>
+        public void ZeroGyroAbsolute()
+        {
+            for (int i = 0; i < this._gyroAbsolutePositionsImmediate.Length; i++)
+            {
+                this._gyroAbsolutePositionsImmediate[i] = 0;
+            }
+
+            for (int i = 0; i < this._gyroAbsolutePositions.Length; i++)
+            {
+                for (int j = 0; j < this._gyroAbsolutePositions[i].Length; j++)
+                {
+                    this._gyroAbsolutePositions[i][j] = 0;
+                }
+            }
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!this._disposedValue)

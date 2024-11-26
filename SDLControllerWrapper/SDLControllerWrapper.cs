@@ -80,6 +80,9 @@
             _instance = this;
         }
 
+        /// <summary>
+        /// Asks SDL to update its controller data, then updates the state of every connected controller.
+        /// </summary>
         public void Poll()
         {
             SDL_gamecontroller.SDL_GameControllerUpdate();

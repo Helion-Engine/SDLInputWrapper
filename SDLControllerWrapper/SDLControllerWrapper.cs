@@ -103,13 +103,20 @@
         public void DetectControllers()
         {
             int numJoysticks = SDL_joystick.SDL_NumJoysticks();
+            foreach(Controller c in this._controllers)
+            {
+                c.Dispose();
+            }
+            this._controllers.Clear();
+            this._controllersDirect = new Controller?[MAXCONTROLLERS];
+
             for (int i = 0; i < numJoysticks && i < MAXCONTROLLERS; i++)
             {
                 if (Controller.IsController(i))
                 {
                     Controller detected = new Controller(i);
                     this._controllers.Add(detected);
-                    this._controllersDirect[i] = detected;
+                    this._controllersDirect[detected.JoystickIndex] = detected;
                 }
             }
         }

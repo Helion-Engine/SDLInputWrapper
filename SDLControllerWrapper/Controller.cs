@@ -204,7 +204,7 @@
 
                 for (int i = 0; i < 3; i++)
                 {
-                    this._gyroAbsolutePositions[nextSample][i] += this._gyroAbsolutePositionsImmediate[i];
+                    this._gyroAbsolutePositions[nextSample][i] = this._gyroAbsolutePositions[this._currentSample][i] + this._gyroAbsolutePositionsImmediate[i];
                     this._gyroAbsolutePositionsImmediate[i] = 0;
                 }
             }

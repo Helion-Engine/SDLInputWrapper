@@ -135,15 +135,15 @@
 
             this.Name = new string(SDL_gamecontroller.SDL_GameControllerName(this._controller));
 
-            this._dpadStates = new DPad[2];
-            this._buttonStates = new bool[2][];
-            this._axisStates = new float[2][];
-            this._gyroStates = new float[2][];
-            this._gyroAbsolutePositions = new double[2][];
-            this._accelStates = new float[2][];
+            this._dpadStates = new DPad[3];
+            this._buttonStates = new bool[3][];
+            this._axisStates = new float[3][];
+            this._gyroStates = new float[3][];
+            this._gyroAbsolutePositions = new double[3][];
+            this._accelStates = new float[3][];
             this._gyroAbsolutePositionsImmediate = new double[3];
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 3; i++)
             {
                 this._buttonStates[i] = new bool[(int)SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_MAX];
                 this._axisStates[i] = new float[(int)SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_MAX];
@@ -171,24 +171,21 @@
         /// </summary>
         public void Poll()
         {
-            this._prevSample = this._currentSample;
-            this._currentSample = (this._currentSample + 1) % 2;
-
-            int sample = this._currentSample;
+            int nextSample = (this._currentSample + 1) % 3;
             _SDL_GameController* controller = this._controller;
 
-            for (int i = 0; i < this._axisStates[sample].Length; i++)
+            for (int i = 0; i < this._axisStates[nextSample].Length; i++)
             {
                 short axisValue = SDL_gamecontroller.SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis)i);
-                this._axisStates[sample][i] = Math.Clamp(axisValue / (float)short.MaxValue, -1, 1);
+                this._axisStates[nextSample][i] = Math.Clamp(axisValue / (float)short.MaxValue, -1, 1);
             }
 
             byte dpadValue = 0;
             byte dpadMul = 1;
-            for (int i = 0; i < this._buttonStates[this._currentSample].Length; i++)
+            for (int i = 0; i < this._buttonStates[nextSample].Length; i++)
             {
                 byte state = SDL_gamecontroller.SDL_GameControllerGetButton(controller, (SDL_GameControllerButton)i);
-                this._buttonStates[sample][i] = state != 0;
+                this._buttonStates[nextSample][i] = state != 0;
                 if (i >= (int)SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_UP && i <= (int)SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
                 {
                     dpadValue += (byte)(state * dpadMul);
@@ -196,28 +193,32 @@
                 }
             }
 
-            this._dpadStates[sample] = (DPad)dpadValue;
+            this._dpadStates[nextSample] = (DPad)dpadValue;
 
             if (this.HasGyro)
             {
-                fixed (float* gyroStates = this._gyroStates[sample])
+                fixed (float* gyroStates = this._gyroStates[nextSample])
                 {
                     _ = SDL_gamecontroller.SDL_GameControllerGetSensorData(controller, SDL_SensorType.SDL_SENSOR_GYRO, gyroStates, 3);
                 }
 
                 for (int i = 0; i < 3; i++)
                 {
-                    this._gyroAbsolutePositions[sample][i] = this._gyroAbsolutePositionsImmediate[i];
+                    this._gyroAbsolutePositions[nextSample][i] += this._gyroAbsolutePositionsImmediate[i];
+                    this._gyroAbsolutePositionsImmediate[i] = 0;
                 }
             }
 
             if (this.HasAccel)
             {
-                fixed (float* accelStates = this._accelStates[sample])
+                fixed (float* accelStates = this._accelStates[nextSample])
                 {
                     _ = SDL_gamecontroller.SDL_GameControllerGetSensorData(controller, SDL_SensorType.SDL_SENSOR_ACCEL, accelStates, 3);
                 }
             }
+
+            this._prevSample = this._currentSample;
+            this._currentSample = (this._currentSample + 1) % 3;
         }
 
         /// <summary>
@@ -236,11 +237,6 @@
         /// </summary>
         public void ZeroGyroAbsolute()
         {
-            for (int i = 0; i < this._gyroAbsolutePositionsImmediate.Length; i++)
-            {
-                this._gyroAbsolutePositionsImmediate[i] = 0;
-            }
-
             for (int i = 0; i < this._gyroAbsolutePositions.Length; i++)
             {
                 for (int j = 0; j < this._gyroAbsolutePositions[i].Length; j++)

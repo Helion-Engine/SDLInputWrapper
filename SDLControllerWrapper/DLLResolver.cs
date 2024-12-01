@@ -51,7 +51,7 @@
                 return ["SDL2.dll"];
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                return ["libSDL2.so"];
+                return ["libSDL2.so", "libSDL2-2.0.so"];
 
             throw new NotSupportedException("This library does not support the current OS.");
 #pragma warning restore IDE0046

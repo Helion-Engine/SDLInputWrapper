@@ -47,6 +47,12 @@
         RightTrigger,
     }
 
+    public enum Stick
+    {
+        LeftStick,
+        RightStick
+    }
+
     public enum AccelAxis
     {
         X,

@@ -98,6 +98,17 @@
                 }
             }
 
+            for (int i = 0; i < controller.CurrentStickAnglesAndDisplacements.Length; i++)
+            {
+                float displacementDelta = Math.Abs(controller.CurrentStickAnglesAndDisplacements[i].Y - controller.PreviousStickAnglesAndDisplacements[i].Y);
+
+                if (displacementDelta > ANALOGTHRESHOLD)
+                {
+                    Console.WriteLine($"{(Stick)i} Angle: {controller.CurrentStickAnglesAndDisplacements[i].X}");
+                    Console.WriteLine($"{(Stick)i} Displacement: {controller.CurrentStickAnglesAndDisplacements[i].Y}");
+                }
+            }
+
             for (int i = 0; i < controller.CurrentButtonValues.Length; i++)
             {
                 if (controller.CurrentButtonValues[i] != controller.PreviousButtonValues[i])

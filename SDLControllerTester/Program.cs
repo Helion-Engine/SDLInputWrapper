@@ -8,8 +8,10 @@
     {
         private static SDLControllerWrapper? _wrapper;
         private static int _mode;
+        private static bool _isGyroCalibrated = false;
 
         private const float ANALOGTHRESHOLD = .1f;
+
 
         public static void Main()
         {
@@ -33,6 +35,20 @@
                 }
 
 
+                if (_mode == 2)
+                {
+                    Console.WriteLine("Calibrating");
+                    if (_wrapper.Controllers.Count > 0)
+                    {
+                        _ = _wrapper.Controllers[0].CalibrateGyro(2500, FinishCalibration);
+                    }
+
+                    while (!_isGyroCalibrated)
+                    {
+                        System.Threading.Thread.Sleep(1000);
+                    }
+                }
+
                 Timer timer = new Timer()
                 {
                     Interval = 50,
@@ -48,6 +64,11 @@
                 {
                 }
             }
+        }
+
+        private static void FinishCalibration()
+        {
+            _isGyroCalibrated = true;
         }
 
         private static void HandleJoystickChangeEvent(object? sender, ConfigurationEvent evt)

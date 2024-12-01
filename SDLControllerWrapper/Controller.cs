@@ -2,13 +2,17 @@
 {
     using Generated.SDL_gamecontroller;
     using Generated.SDL_joystick;
-    using global::SDLControllerWrapper.Generated.SDL_sensor;
+    using Generated.SDL_sensor;
     using System;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     public unsafe class Controller : IDisposable
     {
         private bool _disposedValue;
         internal _SDL_GameController* _controller;
+        private readonly SDLControllerWrapper _parent;
 
         /// <summary>
         /// The <see cref="Joystick"/> this game controller is correlated with
@@ -46,6 +50,8 @@
 
         private int _currentSample;
         private int _prevSample;
+        private int _sampleCount;
+        private bool _doNoiseCalibration;
 
         /// <summary>
         /// Get the most recent sampled values for all buttons, indexed by <see cref="Button"/>
@@ -115,8 +121,19 @@
         /// </summary>
         public float[] PreviousAccelValues => this._accelStates[this._prevSample];
 
-        internal unsafe Controller(int index)
+        /// <summary>
+        /// Get or set the "noise" thresholds for the gyro.  Updates below this threshold are ignored.
+        /// </summary>
+        public readonly float[] GyroNoise;
+
+        /// <summary>
+        /// Get or set the constant-rate drift for the gyro.
+        /// </summary>
+        public readonly float[] GyroDrift;
+
+        internal unsafe Controller(SDLControllerWrapper parent, int index)
         {
+            this._parent = parent;
             this._controller = SDL_gamecontroller.SDL_GameControllerOpen(index);
             this.JoystickIndex = SDL_joystick.SDL_JoystickInstanceID(SDL_gamecontroller.SDL_GameControllerGetJoystick(this._controller));
             this.HasRumble = SDL_gamecontroller.SDL_GameControllerHasRumble(this._controller) == Generated.Shared.SDL_bool.SDL_TRUE;
@@ -142,6 +159,8 @@
             this._gyroAbsolutePositions = new double[3][];
             this._accelStates = new float[3][];
             this._gyroAbsolutePositionsImmediate = new double[3];
+            this.GyroNoise = new float[3];
+            this.GyroDrift = new float[3];
 
             for (int i = 0; i < 3; i++)
             {
@@ -155,9 +174,24 @@
 
         internal unsafe void UpdateGyroAbsolutePositions(float* data)
         {
+            this._sampleCount++;
+
+            if (this._doNoiseCalibration)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    this.GyroNoise[i] = Math.Max(this.GyroNoise[i], Math.Abs(data[i]));
+                }
+
+                return;
+            }
+
             for (int i = 0; i < 3; i++)
             {
-                this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * data[i]);
+                if (Math.Abs(data[i]) > this.GyroNoise[i])
+                {
+                    this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * (data[i] - this.GyroDrift[i]));
+                }
             }
         }
 
@@ -202,11 +236,21 @@
                     _ = SDL_gamecontroller.SDL_GameControllerGetSensorData(controller, SDL_SensorType.SDL_SENSOR_GYRO, gyroStates, 3);
                 }
 
+                for (int i = 0; i < this._gyroStates[nextSample].Count(); i++)
+                {
+                    if (Math.Abs(this._gyroStates[nextSample][i]) < this.GyroNoise[i])
+                    {
+                        this._gyroStates[nextSample][i] = 0;
+                    }
+                }
+
                 for (int i = 0; i < 3; i++)
                 {
                     this._gyroAbsolutePositions[nextSample][i] = this._gyroAbsolutePositions[this._currentSample][i] + this._gyroAbsolutePositionsImmediate[i];
                     this._gyroAbsolutePositionsImmediate[i] = 0;
                 }
+
+                this._sampleCount = 0;
             }
 
             if (this.HasAccel)
@@ -219,6 +263,63 @@
 
             this._prevSample = this._currentSample;
             this._currentSample = (this._currentSample + 1) % 3;
+        }
+
+        /// <summary>
+        /// Calibrate the controller gyro by monitoring drift and noise for the specified duration.
+        /// All connected controllers will not send updates until this process is completed.
+        /// User should be advised to put the controller on a stationary surface.
+        /// Note that calibration will take _twice_ the specified amount of time, as we first check noise, then drift.
+        /// </summary>
+        /// <param name="durationMs">Duration for which to calibrate</param>
+        /// <param name="callback">Function to call when calibration is finished</param>
+        /// <returns>True if calibration has begun, false if it has not (for example, if the controller has no gyro)</returns>
+        public bool CalibrateGyro(int durationMs, Action callback)
+        {
+            if (!this.HasGyro)
+            {
+                return false;
+            }
+
+            _ = Task.Run(() => this.CalibrateGyroTask(durationMs, callback));
+            return true;
+        }
+
+        private void CalibrateGyroTask(int durationMs, Action callback)
+        {
+            this._parent.PollingEnabled = false;
+
+            // Calibrate for noise
+            this._doNoiseCalibration = true;
+            this.ZeroGyroAbsolute();
+            for (int i = 0; i < durationMs / 50; i++)
+            {
+                Thread.Sleep(50);
+                SDL_gamecontroller.SDL_GameControllerUpdate();
+            }
+            this._doNoiseCalibration = false;
+            this._sampleCount = 0;
+
+            // Calibrate for drift over time
+            Thread.Sleep(durationMs);
+            for (int i = 0; i < durationMs / 50; i++)
+            {
+                Thread.Sleep(50);
+                SDL_gamecontroller.SDL_GameControllerUpdate();
+            }
+
+            if (this._sampleCount > 0)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    this.GyroDrift[i] = (float)(this._gyroAbsolutePositionsImmediate[i] / this._sampleCount);
+                }
+            }
+            this.ZeroGyroAbsolute();
+            this._sampleCount = 0;
+
+            this._parent.PollingEnabled = true;
+            callback();
         }
 
         /// <summary>

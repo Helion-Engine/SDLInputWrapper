@@ -28,6 +28,8 @@
         private List<Controller> _controllers;
         private Controller?[] _controllersDirect;
 
+        internal bool PollingEnabled;
+
         /// <summary>
         /// Gets the singleton controller wrapper (if initialized)
         /// </summary>
@@ -81,6 +83,8 @@
 
             ConfigurationChanged += controllerChangeHandler;
             _instance = this;
+
+            this.PollingEnabled = true;
         }
 
         /// <summary>
@@ -88,6 +92,11 @@
         /// </summary>
         public void Poll()
         {
+            if (!this.PollingEnabled)
+            {
+                return;
+            }
+
             SDL_gamecontroller.SDL_GameControllerUpdate();
             foreach (Controller controller in this.Controllers)
             {
@@ -103,7 +112,7 @@
         public void DetectControllers()
         {
             int numJoysticks = SDL_joystick.SDL_NumJoysticks();
-            foreach(Controller c in this._controllers)
+            foreach (Controller c in this._controllers)
             {
                 c.Dispose();
             }
@@ -114,7 +123,7 @@
             {
                 if (Controller.IsController(i))
                 {
-                    Controller detected = new Controller(i);
+                    Controller detected = new Controller(this, i);
                     this._controllers.Add(detected);
                     this._controllersDirect[detected.JoystickIndex] = detected;
                 }
@@ -135,7 +144,7 @@
                     // Note:  The controller index for the "added" event is a "controller index".
                     // For other events, it appears we're getting a "joystick index".  The two are not
                     // necessarily the same, especially if a device has been unplugged and re-plugged.
-                    Controller added = new Controller(index);
+                    Controller added = new Controller(this, index);
                     this._controllers.Add(added);
                     this._controllersDirect[added.JoystickIndex] = added;
                     ConfigurationChanged(this, new(ConfigurationChange.Added, index));

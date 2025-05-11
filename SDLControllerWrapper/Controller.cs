@@ -4,17 +4,13 @@
     using Generated.SDL_joystick;
     using Generated.SDL_sensor;
     using System;
-    using System.Linq;
     using System.Numerics;
     using System.Threading;
     using System.Threading.Tasks;
 
     public unsafe class Controller : IDisposable
     {
-        private bool _disposedValue;
-        internal _SDL_GameController* _controller;
-        private readonly SDLControllerWrapper _parent;
-        private readonly object _lockObj = new object();
+        private const int GYRO_SAMPLES_KEPT = 16;
 
         /// <summary>
         /// The <see cref="Joystick"/> this game controller is correlated with
@@ -40,33 +36,6 @@
         /// The name of the controller according to SDL
         /// </summary>
         public readonly string Name;
-
-        private readonly bool[][] _buttonStates;
-        private readonly float[][] _axisStates;
-        private readonly DPad[] _dpadStates;
-        private readonly float[][] _gyroStates;
-        private readonly float[][] _accelStates;
-        private readonly double[][] _gyroAbsolutePositions;
-        private readonly double[] _gyroAbsolutePositionsImmediate;
-        private readonly float _gyroSampleRate;
-        private readonly Vector2[][] _stickAnglesAndDisplacements;
-
-        private int _currentSample;
-        private int _prevSample;
-        private int _sampleCount;
-        private bool _doNoiseCalibration;
-
-        /// <summary>
-        /// How many samples to keep.  Increasing this increases the smoothness
-        /// of gyro movements at the cost of responsiveness, memory, and increased
-        /// computational intensity.
-        /// </summary>
-        private const int GYRO_SAMPLES_KEPT = 16;
-        /// <summary>
-        /// Ring storing last GYRO_SAMPLES_KEPT raw gyro samples for smoothing
-        /// </summary>
-        private float[,] _prevGyroStates;
-        private int _ringIndex = 0;
 
         /// <summary>
         /// Get the most recent sampled values for all buttons, indexed by <see cref="Button"/>
@@ -157,15 +126,40 @@
         /// Get or set the constant-rate drift for the gyro.
         /// </summary>
         public readonly float[] GyroDrift;
+
         /// <summary>
-        /// Should we even do smoothing?
+        /// Should we perform gyro smoothing?
         /// </summary>
-        public readonly bool PerformSmoothing;
+        internal bool PerformSmoothing;
+
         /// <summary>
         /// The magnitude of the input required to stop applying smoothing.
-        /// Note that at about half this threshold, 
         /// </summary>
-        public readonly float SmoothingThreshold;
+        internal float SmoothingThreshold;
+
+        private readonly bool[][] _buttonStates;
+        private readonly float[][] _axisStates;
+        private readonly DPad[] _dpadStates;
+        private readonly float[][] _gyroStates;
+        private readonly float[][] _accelStates;
+        private readonly double[][] _gyroAbsolutePositions;
+        private readonly double[] _gyroAbsolutePositionsImmediate;
+        private readonly float _gyroSampleRate;
+        private readonly Vector2[][] _stickAnglesAndDisplacements;
+
+        private int _currentSample;
+        private int _prevSample;
+        private int _sampleCount;
+        private bool _doNoiseCalibration;
+
+        private bool _disposedValue;
+        internal _SDL_GameController* _controller;
+        private readonly SDLControllerWrapper _parent;
+        private readonly object _lockObj = new object();
+
+        // Ring buffer for smoothing
+        private float[,] _prevGyroStates;
+        private int _ringIndex = 0;
 
         internal unsafe Controller(SDLControllerWrapper parent, int index)
         {
@@ -199,7 +193,7 @@
             this._gyroAbsolutePositionsImmediate = new double[3];
             this.GyroNoise = new float[3];
             this.GyroDrift = new float[3];
-            this._prevGyroStates = new float[GYRO_SAMPLES_KEPT,3];
+            this._prevGyroStates = new float[GYRO_SAMPLES_KEPT, 3];
 
             for (int i = 0; i < 3; i++)
             {
@@ -297,29 +291,34 @@
                         this._gyroStates[nextSample][i] = 0;
                     }
                 }
+
                 // If we're performing smoothing, modify the sample we just set
                 // Merge this block with the above for loop if smoothed input is unresponsive
-                if (PerformSmoothing)
+                if (this.PerformSmoothing)
                 {
                     float magnitude = 0.0f;
                     float lower_threshold = this.SmoothingThreshold / 2;
+
                     for (int i = 0; i < this._gyroStates[nextSample].Length; i++)
                     {
-                        this._prevGyroStates[_ringIndex,i] = this._gyroStates[nextSample][i];
-                        magnitude += this._gyroStates[nextSample][i]*this._gyroStates[nextSample][i];
+                        this._prevGyroStates[_ringIndex, i] = this._gyroStates[nextSample][i];
+                        magnitude += this._gyroStates[nextSample][i] * this._gyroStates[nextSample][i];
                     }
+
                     this._ringIndex = (_ringIndex + 1) % GYRO_SAMPLES_KEPT;
                     float directWeight = Math.Clamp((magnitude - lower_threshold) / (this.SmoothingThreshold - lower_threshold), 0.0f, 1.0f);
                     float new_sample_x = 0.0f, new_sample_y = 0.0f, new_sample_z = 0.0f;
+
                     for (int i = 0; i < GYRO_SAMPLES_KEPT; i++)
                     {
-                        new_sample_x += this._prevGyroStates[i,0];
-                        new_sample_y += this._prevGyroStates[i,1];
-                        new_sample_z += this._prevGyroStates[i,2];
+                        new_sample_x += this._prevGyroStates[i, 0];
+                        new_sample_y += this._prevGyroStates[i, 1];
+                        new_sample_z += this._prevGyroStates[i, 2];
                     }
-                    this._gyroStates[nextSample][0] = this._gyroStates[nextSample][0]*directWeight + new_sample_x*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
-                    this._gyroStates[nextSample][1] = this._gyroStates[nextSample][1]*directWeight + new_sample_y*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
-                    this._gyroStates[nextSample][2] = this._gyroStates[nextSample][2]*directWeight + new_sample_z*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
+
+                    this._gyroStates[nextSample][0] = (this._gyroStates[nextSample][0] * directWeight) + (new_sample_x * (1.0f - directWeight) / GYRO_SAMPLES_KEPT);
+                    this._gyroStates[nextSample][1] = (this._gyroStates[nextSample][1] * directWeight) + (new_sample_y * (1.0f - directWeight) / GYRO_SAMPLES_KEPT);
+                    this._gyroStates[nextSample][2] = (this._gyroStates[nextSample][2] * directWeight) + (new_sample_z * (1.0f - directWeight) / GYRO_SAMPLES_KEPT);
                 }
 
                 lock (this._lockObj)

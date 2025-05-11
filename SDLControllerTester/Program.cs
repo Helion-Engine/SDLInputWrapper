@@ -12,7 +12,6 @@
 
         private const float ANALOGTHRESHOLD = .1f;
 
-
         public static void Main()
         {
             using (_wrapper = new SDLControllerWrapper(HandleJoystickChangeEvent))
@@ -34,10 +33,16 @@
                         break;
                 }
 
-
                 if (_mode == 2)
                 {
-                    Console.WriteLine("Calibrating");
+                    Console.WriteLine();
+                    Console.WriteLine("Perform smoothing? Y/N");
+                    key = Console.ReadKey();
+                    bool smooth = key.Key == ConsoleKey.Y;
+                    _wrapper.SetSmoothing(smooth, 1f);
+
+                    Console.WriteLine();
+                    Console.WriteLine("Calibrating; please leave the controller on a flat surface and wait...");
                     if (_wrapper.Controllers.Count > 0)
                     {
                         _ = _wrapper.Controllers[0].CalibrateGyro(2500, FinishCalibration);

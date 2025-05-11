@@ -290,7 +290,7 @@
                     _ = SDL_gamecontroller.SDL_GameControllerGetSensorData(controller, SDL_SensorType.SDL_SENSOR_GYRO, gyroStates, 3);
                 }
 
-                for (int i = 0; i < this._gyroStates[nextSample].Count(); i++)
+                for (int i = 0; i < this._gyroStates[nextSample].Length; i++)
                 {
                     if (Math.Abs(this._gyroStates[nextSample][i]) < this.GyroNoise[i])
                     {
@@ -303,7 +303,7 @@
                 {
                     float magnitude = 0.0f;
                     float lower_threshold = this.SmoothingThreshold / 2;
-                    for (int i = 0; i < this._gyroStates[nextSample].Count(); i++)
+                    for (int i = 0; i < this._gyroStates[nextSample].Length; i++)
                     {
                         this._prevGyroStates[_ringIndex,i] = this._gyroStates[nextSample][i];
                         magnitude += this._gyroStates[nextSample][i]*this._gyroStates[nextSample][i];

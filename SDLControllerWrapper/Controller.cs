@@ -309,11 +309,7 @@
                         magnitude += this._gyroStates[nextSample][i]*this._gyroStates[nextSample][i];
                     }
                     this._ringIndex = (_ringIndex + 1) % GYRO_SAMPLES_KEPT;
-                    float directWeight = (magnitude - lower_threshold) / (SmoothingThreshold - lower_threshold);
-                    if (directWeight < 0)
-                        directWeight = 0;
-                    else if (directWeight > 1)
-                        directWeight = 1;
+                    float directWeight = Math.Clamp((magnitude - lower_threshold) / (this.SmoothingThreshold - lower_threshold), 0.0f, 1.0f);
                     float new_sample_x = 0.0f, new_sample_y = 0.0f, new_sample_z = 0.0f;
                     for (int i = 0; i < GYRO_SAMPLES_KEPT; i++)
                     {

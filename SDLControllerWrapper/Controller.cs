@@ -322,8 +322,8 @@
                         new_sample_z += this._prevGyroStates[i,2];
                     }
                     this._gyroStates[nextSample][0] = this._gyroStates[nextSample][0]*directWeight + new_sample_x*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
-                    this._gyroStates[nextSample][1] += this._gyroStates[nextSample][1]*directWeight + new_sample_y*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
-                    this._gyroStates[nextSample][2] += this._gyroStates[nextSample][2]*directWeight + new_sample_z*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
+                    this._gyroStates[nextSample][1] = this._gyroStates[nextSample][1]*directWeight + new_sample_y*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
+                    this._gyroStates[nextSample][2] = this._gyroStates[nextSample][2]*directWeight + new_sample_z*(1.0f-directWeight) / GYRO_SAMPLES_KEPT;
                 }
 
                 lock (this._lockObj)

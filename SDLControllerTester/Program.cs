@@ -41,10 +41,11 @@
                     Console.WriteLine("Perform smoothing? Y/N");
                     key = Console.ReadKey();
                     bool smooth = key.Key == ConsoleKey.Y;
+                    float smoothThreshold = -1f;
                     if (smooth)
                     {
                         Console.WriteLine();
-                        float smoothThreshold = -1f;
+                        
                         while (smoothThreshold == -1f)
                         {
                             Console.Write("Specify smoothing threshold: ");
@@ -52,13 +53,15 @@
                             smoothThreshold = float.TryParse(smoothStr, out float smoothParsed) && smoothParsed >= 0 ? smoothParsed : -1f;
                         }
                     }
-                    _wrapper.SetSmoothing(smooth, 1f);
 
                     Console.WriteLine();
                     Console.WriteLine("Calibrating; please leave the controller on a flat surface and wait...");
                     if (_wrapper.Controllers.Count > 0)
                     {
                         _ = _wrapper.Controllers[0].CalibrateGyro(2500, FinishCalibration);
+
+                        _wrapper.Controllers[0].PerformSmoothing = smooth;
+                        _wrapper.Controllers[0].SmoothingThreshold = smoothThreshold;
                     }
 
                     while (!_isGyroCalibrated)

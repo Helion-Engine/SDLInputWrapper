@@ -130,12 +130,12 @@
         /// <summary>
         /// Should we perform gyro smoothing?
         /// </summary>
-        internal bool PerformSmoothing;
+        public bool PerformSmoothing;
 
         /// <summary>
-        /// The magnitude of the input required to stop applying smoothing.
+        /// The magnitude of the input (rad/s) required to stop applying smoothing.
         /// </summary>
-        internal float SmoothingThreshold;
+        public float SmoothingThreshold;
 
         private readonly bool[][] _buttonStates;
         private readonly float[][] _axisStates;

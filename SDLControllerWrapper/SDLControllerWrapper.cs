@@ -130,16 +130,6 @@
             }
         }
 
-
-        public void SetSmoothing(bool smooth, float threshold)
-        {
-            for (int i = 0; i < this._controllers.Count; i++)
-            {
-                this.Controllers[i].PerformSmoothing = smooth;
-                this.Controllers[i].SmoothingThreshold = threshold;
-            }
-        }
-
         private unsafe void ControllerEventFilter(void* userData, SDL_Event* evt, int retVal)
         {
             int index = evt->cdevice.which;

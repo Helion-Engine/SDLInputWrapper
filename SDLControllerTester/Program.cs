@@ -4,6 +4,8 @@
     using System;
     using System.Timers;
 
+
+
     public static class Program
     {
         private static SDLControllerWrapper? _wrapper;
@@ -39,6 +41,17 @@
                     Console.WriteLine("Perform smoothing? Y/N");
                     key = Console.ReadKey();
                     bool smooth = key.Key == ConsoleKey.Y;
+                    if (smooth)
+                    {
+                        Console.WriteLine();
+                        float smoothThreshold = -1f;
+                        while (smoothThreshold == -1f)
+                        {
+                            Console.Write("Specify smoothing threshold: ");
+                            string? smoothStr = Console.ReadLine();
+                            smoothThreshold = float.TryParse(smoothStr, out float smoothParsed) && smoothParsed >= 0 ? smoothParsed : -1f;
+                        }
+                    }
                     _wrapper.SetSmoothing(smooth, 1f);
 
                     Console.WriteLine();

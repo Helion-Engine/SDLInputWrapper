@@ -150,7 +150,7 @@
         private int _currentSample;
         private int _prevSample;
         private int _sampleCount;
-        private bool _doNoiseCalibration;
+        private bool _isCalibrating;
 
         private bool _disposedValue;
         internal _SDL_GameController* _controller;
@@ -212,22 +212,24 @@
             {
                 this._sampleCount++;
 
-                if (this._doNoiseCalibration)
+                if (this._isCalibrating)
                 {
                     for (int i = 0; i < 3; i++)
                     {
-                        this.GyroNoise[i] = Math.Max(this.GyroNoise[i], Math.Abs(data[i]));
+                        // Accumulate instantaneous absolute error, we'll divide it by number of samples at end of calibration.
+                        this.GyroNoise[i] += Math.Abs(data[i]);
                     }
-
-                    return;
                 }
 
                 for (int i = 0; i < 3; i++)
                 {
-                    if (Math.Abs(data[i]) > this.GyroNoise[i])
+                    // Linear prescale against noise threshold for this axis
+                    if (!this._isCalibrating && this.GyroNoise[i] > 0 && Math.Abs(data[i]) <= this.GyroNoise[i])
                     {
-                        this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * (data[i] - this.GyroDrift[i]));
+                        data[i] *= data[i] / this.GyroNoise[i];
                     }
+
+                    this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * (data[i] - this.GyroDrift[i]));
                 }
             }
         }
@@ -348,8 +350,9 @@
         /// <summary>
         /// Calibrate the controller gyro by monitoring drift and noise for the specified duration.
         /// All connected controllers will not send updates until this process is completed.
-        /// User should be advised to put the controller on a stationary surface.
-        /// Note that calibration will take _twice_ the specified amount of time, as we first check noise, then drift.
+        /// User should be advised to put the controller on a stationary surface, and calling program
+        /// should give them a brief grace period to do so before calling this method.
+        /// Calibration runs asynchronously on a separate thread.
         /// </summary>
         /// <param name="durationMs">Duration for which to calibrate</param>
         /// <param name="callback">Function to call when calibration is finished</param>
@@ -369,19 +372,12 @@
         {
             this._parent.PollingEnabled = false;
 
-            // Calibrate for noise
-            this._doNoiseCalibration = true;
+            this.ZeroGyroCompensations();
+
+            this._isCalibrating = true;
             this.ZeroGyroAbsolute();
-            for (int i = 0; i < durationMs / 50; i++)
-            {
-                Thread.Sleep(50);
-                SDL_gamecontroller.SDL_GameControllerUpdate();
-            }
-            this._doNoiseCalibration = false;
             this._sampleCount = 0;
 
-            // Calibrate for drift over time
-            Thread.Sleep(durationMs);
             for (int i = 0; i < durationMs / 50; i++)
             {
                 Thread.Sleep(50);
@@ -392,11 +388,15 @@
             {
                 for (int i = 0; i < 3; i++)
                 {
+                    // "Drift" is average angular velocity per sample.  "Noise" is average _absolute_ angular velocity per sample.
                     this.GyroDrift[i] = (float)(this._gyroAbsolutePositionsImmediate[i] / this._sampleCount);
+                    this.GyroNoise[i] /= this._sampleCount;
                 }
             }
+
             this.ZeroGyroAbsolute();
             this._sampleCount = 0;
+            this._isCalibrating = false;
 
             this._parent.PollingEnabled = true;
             callback();
@@ -427,6 +427,16 @@
                         this._gyroAbsolutePositions[i][j] = 0;
                     }
                 }
+            }
+        }
+
+        private void ZeroGyroCompensations()
+        {
+            // Ensure drift and noise compensations are all zeroed
+            for (int i = 0; i < 3; i++)
+            {
+                GyroDrift[i] = 0;
+                GyroNoise[i] = 0;
             }
         }
 

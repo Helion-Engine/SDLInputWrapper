@@ -223,10 +223,13 @@
 
                 for (int i = 0; i < 3; i++)
                 {
-                    if (this._isCalibrating || Math.Abs(data[i]) > this.GyroNoise[i])
+                    // Linear prescale against noise threshold for this axis
+                    if (!this._isCalibrating && this.GyroNoise[i] > 0 && Math.Abs(data[i]) <= this.GyroNoise[i])
                     {
-                        this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * (data[i] - this.GyroDrift[i]));
+                        data[i] *= data[i] / this.GyroNoise[i];
                     }
+
+                    this._gyroAbsolutePositionsImmediate[i] += unchecked((double)1 / this._gyroSampleRate * (data[i] - this.GyroDrift[i]));
                 }
             }
         }

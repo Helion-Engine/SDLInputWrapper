@@ -368,18 +368,7 @@
         private void CalibrateGyroTask(int durationMs, Action callback)
         {
             this._parent.PollingEnabled = false;
-
-            // Calibrate for noise
-            this._doNoiseCalibration = true;
-            this.ZeroGyroAbsolute();
-            for (int i = 0; i < durationMs / 50; i++)
-            {
-                Thread.Sleep(50);
-                SDL_gamecontroller.SDL_GameControllerUpdate();
-            }
-            this._doNoiseCalibration = false;
-            this._sampleCount = 0;
-
+            
             // Calibrate for drift over time
             Thread.Sleep(durationMs);
             for (int i = 0; i < durationMs / 50; i++)
@@ -398,6 +387,17 @@
             this.ZeroGyroAbsolute();
             this._sampleCount = 0;
 
+            // Calibrate for noise
+            this._doNoiseCalibration = true;
+            this.ZeroGyroAbsolute();
+            for (int i = 0; i < durationMs / 50; i++)
+            {
+                Thread.Sleep(50);
+                SDL_gamecontroller.SDL_GameControllerUpdate();
+            }
+            this._doNoiseCalibration = false;
+            this._sampleCount = 0;
+            
             this._parent.PollingEnabled = true;
             callback();
         }

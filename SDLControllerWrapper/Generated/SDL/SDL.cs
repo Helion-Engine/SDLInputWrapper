@@ -27,16 +27,16 @@ namespace SDLControllerWrapper.Generated.SDL
         public static extern int SDL_Init([NativeTypeName("Uint32")] InitFlags flags);
 
         [DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern int SDL_InitSubSystem([NativeTypeName("Uint32")] InitFlags flags);
-
-        [DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void SDL_QuitSubSystem([NativeTypeName("Uint32")] InitFlags flags);
 
-        [DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("Uint32")]
-        public static extern uint SDL_WasInit([NativeTypeName("Uint32")] InitFlags flags);
+        //[DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        //public static extern int SDL_InitSubSystem([NativeTypeName("Uint32")] InitFlags flags);
 
-        [DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void SDL_Quit();
+        //[DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        //[return: NativeTypeName("Uint32")]
+        //public static extern uint SDL_WasInit([NativeTypeName("Uint32")] InitFlags flags);
+
+        //[DllImport(SDLControllerWrapper.LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        //public static extern void SDL_Quit();
     }
 }

@@ -15,7 +15,7 @@
   
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="..\build-native\linux-x64\*" Pack="true" PackagePath="runtimes\linux-x64\native\" />
-    <None Include="..\build-native\win-x64\*" Pack="true" PackagePath="runtimes\win-x64\native\" />
+    <None Include="..\build-native\linux-x64\*" Pack="true" PackagePath="runtimes\linux-x64\native" />
+    <None Include="..\build-native\win-x64\*" Pack="true" PackagePath="runtimes\win-x64\native" />
   </ItemGroup>
 </Project>

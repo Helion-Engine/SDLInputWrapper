@@ -25,7 +25,7 @@ jobs:
             libfiles: SDL2_Native/build/Release/SDL2.dll
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Clone Submodules
         run: git submodule update --init
       - name: Install Tools
@@ -42,7 +42,7 @@ jobs:
          cp ${{ matrix.linkerfiles }} build_native/${{ matrix.rid }}
          cp ${{ matrix.libfiles }} build_native/${{ matrix.rid }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native-${{ matrix.rid }}
           path: build_native
@@ -50,9 +50,9 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build_native
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get Native Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: native-*
           path: build-native
@@ -70,7 +70,7 @@ jobs:
           cp SDLControllerWrapper/bin/Release/*.nupkg build_managed
           cp SDLControllerWrapper/bin/Release/*.snupkg build_managed
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: SDLControllerWrapper
           path: build_managed

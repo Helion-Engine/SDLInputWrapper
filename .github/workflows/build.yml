@@ -31,7 +31,7 @@ jobs:
                 cp SDL2_Native/build/*.a build_native/linux-x64
                 cp SDL2_Native/build/libSDL2-2.0.so build_native/linux-x64
             - name: Upload Artifact
-                uses: actions/upload-artifact@v4
-                with: 
-                    name: native-linux-x64
-                    path: build_native
+              uses: actions/upload-artifact@v4
+              with:
+                name: native-linux-x64
+                path: build_native

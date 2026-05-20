@@ -12,14 +12,14 @@ jobs:
         steps: 
             - uses: actions/checkout@v4
             - name: Clone Submodules
-              run: git submodule update --init --recursive --remote
+              run: git submodule update --init
             - name: Install Build Tools
               run: sudo apt-get install -y cmake
             - name: CMake Configure
               run:  cmake -B build -DSDL_AUDIO:BOOL="0" -DSDL_HIDAPI_JOYSTICK:BOOL="1" -DSDL_MISC:BOOL="0" -DSDL_DUMMYAUDIO:BOOL="0" -DSDL_RENDER:BOOL="0" -DSDL_ALTIVEC:BOOL="0" -DSDL_CPUINFO:BOOL="0" -DSDL_SHARED:BOOL="1" -DSDL_OPENGL:BOOL="0" -DSDL_VULKAN:BOOL="0" -DSDL_DIRECTX:BOOL="0" -DSDL_RENDER_D3D:BOOL="0" -DSDL_FILE:BOOL="0" -DSDL_DUMMYVIDEO:BOOL="0" -DSDL_LOADSO:BOOL="0" -DSDL_OPENGLES:BOOL="0" -DSDL_TEST:BOOL="0" -DSDL_FILESYSTEM:BOOL="0" -DSDL_OFFSCREEN:BOOL="0" -DSDL_VIDEO:BOOL="0" -DSDL_DISKAUDIO:BOOL="0" -DSDL_POWER:BOOL="0" -DSDL_WASAPI:BOOL="0" -DSDL_ATOMIC:BOOL="0" -DSDL_UNIX_CONSOLE_BUILD=ON
               working-directory: SDL2_Native
             - name: CMake Build
-              run: cmake --build . --config Release
+              run: cmake --build . --config Release -j
               working-directory: SDL2_Native/build
             - name: Make Output Folder
               shell: bash

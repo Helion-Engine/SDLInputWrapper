@@ -34,6 +34,7 @@ jobs:
                 path: build_native
     build_native_windows:
         runs-on: windows-2022
+        steps:
             - uses: actions/checkout@v4
             - name: Clone Submodules
               run: git submodule update --init

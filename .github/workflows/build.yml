@@ -46,3 +46,31 @@ jobs:
         with:
           name: native-${{ matrix.rid }}
           path: build_native
+  pack:
+    runs-on: ubuntu-22.04
+    needs: build_native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Native Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: build-native
+          merge-multiple: true
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: pack
+        run: dotnet pack -c Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+        working-directory: SDLControllerWrapper
+      - name: Make Output Folder
+        run: |
+          mkdir -p build_managed
+          cp SDLControllerWrapper/bin/Release/*.nupkg build_managed
+          cp SDLControllerWrapper/bin/Release/*.snupkg build_managed
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SDLControllerWrapper
+          path: build_managed

@@ -1,0 +1,3 @@
+[submodule "SDL2_Native"]
+	path = SDL2_Native
+	url = https://github.com/libsdl-org/SDL

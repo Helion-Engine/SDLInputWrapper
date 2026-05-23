@@ -20,7 +20,7 @@ jobs:
           - os: windows-2022
             rid: win-x64
             additionalconfig: echo "Hi there."
-            cmakeargs: -B build -A x64 DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+            cmakeargs: -B build -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DBUILD_SHARED_LIBS=OFF -DLIBTYPE=STATIC -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
             linkerfiles: SDL2_Native/build/Release/SDL2-static.lib
             libfiles: SDL2_Native/build/Release/SDL2.dll
     runs-on: ${{ matrix.os }}

@@ -20,7 +20,7 @@ jobs:
           - os: windows-2022
             rid: win-x64
             additionalconfig: echo "Hi there."
-            cmakeargs: -B build -A x64
+            cmakeargs: -B build -A x64 DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
             linkerfiles: SDL2_Native/build/Release/SDL2-static.lib
             libfiles: SDL2_Native/build/Release/SDL2.dll
     runs-on: ${{ matrix.os }}

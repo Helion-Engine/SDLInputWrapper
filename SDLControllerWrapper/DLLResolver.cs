@@ -36,14 +36,20 @@
                      ? Environment.Is64BitProcess
                          ? "runtimes\\win-x64\\native\\"
                          : "runtimes\\win-x86\\native\\"
-                     : throw new NotSupportedException("Unsupported OS platform");
+                     : OperatingSystem.IsMacOS()
+                        ? Environment.Is64BitProcess
+                            ? "runtimes\\osx-arm64\\native\\"
+                            : "runtimes\\osx-arm64\\native\\"
+                        : throw new NotSupportedException("Unsupported OS platform");
 
         private static readonly string[] LibraryNames =
             OperatingSystem.IsLinux()
                 ? ["libSDL2.so", "libSDL2-2.0.so"]
                 : OperatingSystem.IsWindows()
                     ? ["SDL2.dll"]
-                    : throw new NotSupportedException("Unsupported OS platform");
+                    : OperatingSystem.IsMacOS()
+                        ? ["libSDL2.dylib", "libSDL2-2.0.dylib"] 
+                        : throw new NotSupportedException("Unsupported OS platform");
 
         private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
         {

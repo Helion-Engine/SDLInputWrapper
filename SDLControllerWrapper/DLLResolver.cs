@@ -38,8 +38,8 @@
                          : "runtimes\\win-x86\\native\\"
                      : OperatingSystem.IsMacOS()
                         ? Environment.Is64BitProcess
-                            ? "runtimes\\osx-arm64\\native\\"
-                            : "runtimes\\osx-arm64\\native\\"
+                            ? "runtimes/osx-arm64/native/"
+                            : "runtimes/osx-arm64/native/"
                         : throw new NotSupportedException("Unsupported OS platform");
 
         private static readonly string[] LibraryNames =
